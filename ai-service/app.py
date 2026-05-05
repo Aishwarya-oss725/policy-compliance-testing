@@ -1,50 +1,84 @@
 from flask import Flask, request, jsonify
-from services.groq_client import get_ai_response
 
 app = Flask(__name__)
 
-
-# -------------------
-# CHAT ENDPOINT
-# -------------------
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.get_json(silent=True)
-
-    if not data or "prompt" not in data:
-        return jsonify({"error": "prompt is required"}), 400
-
-    if data["prompt"] is None:
-        return jsonify({"error": "prompt cannot be null"}), 400
-
-    try:
-        result = get_ai_response(data["prompt"])
-        return jsonify(result), 200
-
-    except Exception:
-        return jsonify({"error": "internal error"}), 500
+# -----------------------------
+# HEALTH CHECK (optional but useful)
+# -----------------------------
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "AI Service Running"})
 
 
-# -------------------
+# -----------------------------
 # DESCRIBE ENDPOINT
-# -------------------
+# -----------------------------
 @app.route("/describe", methods=["POST"])
 def describe():
-    data = request.get_json(silent=True)
+    data = request.get_json()
+    user_input = data.get("input", "")
 
-    if not data or "input" not in data:
-        return jsonify({"error": "input required"}), 400
-
-    try:
-        result = get_ai_response(data["input"])
-        return jsonify({"description": result["response"]}), 200
-
-    except Exception:
-        return jsonify({"error": "internal error"}), 500
+    return jsonify({
+        "description": f"Mock response for: {user_input}"
+    })
 
 
-# -------------------
-# RUN APP
-# -------------------
+# -----------------------------
+# RECOMMEND ENDPOINT
+# -----------------------------
+@app.route("/recommend", methods=["POST"])
+def recommend():
+    data = request.get_json()
+    user_input = data.get("input", "")
+
+    return jsonify({
+        "recommendations": [
+            {
+                "action_type": "improve",
+                "description": f"Enhance security for: {user_input}",
+                "priority": "high"
+            },
+            {
+                "action_type": "monitor",
+                "description": "Enable logging and alerts",
+                "priority": "medium"
+            },
+            {
+                "action_type": "prevent",
+                "description": "Add rate limiting and validation",
+                "priority": "high"
+            }
+        ]
+    })
+
+
+# -----------------------------
+# GENERATE REPORT ENDPOINT
+# -----------------------------
+@app.route("/generate-report", methods=["POST"])
+def generate_report():
+    data = request.get_json()
+    user_input = data.get("input", "")
+
+    return jsonify({
+        "title": "AI Generated Report",
+        "summary": f"Analysis performed on: {user_input}",
+        "overview": "System is operating within expected parameters.",
+        "key_items": [
+            "Security checks passed",
+            "No injection detected",
+            "Performance stable"
+        ],
+        "recommendations": [
+            "Continue monitoring",
+            "Improve logging",
+            "Regular audits required"
+        ]
+    })
+
+
+# -----------------------------
+# RUN SERVER
+# -----------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
