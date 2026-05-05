@@ -1,30 +1,50 @@
 from flask import Flask, request, jsonify
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
-from services.groq_client import GroqClient
-from middleware.sanitize import sanitize_input
+from services.groq_client import get_ai_response
 
 app = Flask(__name__)
-limiter = Limiter(get_remote_address, app=app)
 
-groq_client = GroqClient()
 
+# -------------------
+# CHAT ENDPOINT
+# -------------------
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(silent=True)
+
+    if not data or "prompt" not in data:
+        return jsonify({"error": "prompt is required"}), 400
+
+    if data["prompt"] is None:
+        return jsonify({"error": "prompt cannot be null"}), 400
+
+    try:
+        result = get_ai_response(data["prompt"])
+        return jsonify(result), 200
+
+    except Exception:
+        return jsonify({"error": "internal error"}), 500
+
+
+# -------------------
+# DESCRIBE ENDPOINT
+# -------------------
 @app.route("/describe", methods=["POST"])
-@limiter.limit("30 per minute")
 def describe():
-    data = request.json
-    text = sanitize_input(data.get("input"))
+    data = request.get_json(silent=True)
 
-    if not text:
-        return jsonify({"error": "Invalid or unsafe input"}), 400
+    if not data or "input" not in data:
+        return jsonify({"error": "input required"}), 400
 
-    result = groq_client.generate_response(text)
-    return jsonify({"response": result})
+    try:
+        result = get_ai_response(data["input"])
+        return jsonify({"description": result["response"]}), 200
 
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"})
+    except Exception:
+        return jsonify({"error": "internal error"}), 500
 
+
+# -------------------
+# RUN APP
+# -------------------
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
